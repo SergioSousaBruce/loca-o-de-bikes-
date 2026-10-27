@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Bicicletas oficiais da frota PEDALAÊ Parintins
+    match /bikes/{bikeId} {
+      allow read, write: if true;
+    }
+
+    // Configurações do sistema (preços, horários, pix)
+    match /settings/{settingId} {
+      allow read, write: if true;
+    }
+
+    // Clientes cadastrados
+    match /clients/{clientId} {
+      allow read, write: if true;
+    }
+
+    // Reservas de locação
+    match /reservations/{reservationId} {
+      allow read, write: if true;
+    }
+
+    // Sessões de rastreamento telemétrico e localização em tempo real
+    match /tracking_sessions/{trackingId} {
+      allow read, write: if true;
+    }
+  }
+}

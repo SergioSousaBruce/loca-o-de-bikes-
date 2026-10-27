@@ -1,0 +1,6 @@
+{
+  "name": "Pedalaê - Aluguel de Bikes",
+  "description": "Sistema oficial de aluguel e reservas de bicicletas em Parintins/AM. Alugue. Pedale. Viva o momento.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

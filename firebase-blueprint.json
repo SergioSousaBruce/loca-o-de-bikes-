@@ -1,0 +1,130 @@
+{
+  "entities": {
+    "Bike": {
+      "title": "Bike",
+      "description": "Represents an individual rental bicycle.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "model": { "type": "string" },
+        "color": { "type": "string" },
+        "description": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "status": { "type": "string", "enum": ["available", "maintenance", "inactive"] },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["code", "name", "model", "color", "status"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "Customer personal registration and contact details.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "fullName": { "type": "string" },
+        "cpf": { "type": "string" },
+        "cpfClean": { "type": "string" },
+        "birthDate": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "email": { "type": "string" },
+        "fullAddress": { "type": "string" },
+        "photoBase64": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" },
+        "totalReservations": { "type": "number" },
+        "lastReservationAt": { "type": "number" }
+      },
+      "required": ["fullName", "cpf", "whatsapp", "email"]
+    },
+    "Reservation": {
+      "title": "Reservation",
+      "description": "Bike rental booking, payment, digital signature, and active telemetry.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "bikeId": { "type": "string" },
+        "customerId": { "type": "string" },
+        "date": { "type": "string" },
+        "startTime": { "type": "string" },
+        "endTime": { "type": "string" },
+        "durationHours": { "type": "number" },
+        "totalPrice": { "type": "number" },
+        "pixKey": { "type": "string" },
+        "status": {
+          "type": "string",
+          "enum": [
+            "aguardando_pagamento",
+            "pagamento_confirmado",
+            "aguardando_retirada",
+            "bike_retirada",
+            "bike_em_uso",
+            "devolvida_finalizada",
+            "cancelada",
+            "cancelamento_solicitado"
+          ]
+        },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["code", "bikeId", "date", "startTime", "endTime", "totalPrice", "status"]
+    },
+    "Setting": {
+      "title": "Setting",
+      "description": "Store configuration, opening hours, PIX details, and pricing plans.",
+      "type": "object",
+      "properties": {
+        "companyName": { "type": "string" },
+        "slogan": { "type": "string" },
+        "whatsappDisplay": { "type": "string" },
+        "pixKey": { "type": "string" }
+      }
+    },
+    "TrackingSession": {
+      "title": "TrackingSession",
+      "description": "Real-time GPS tracking session for an active rental.",
+      "type": "object",
+      "properties": {
+        "trackingId": { "type": "string" },
+        "reservationId": { "type": "string" },
+        "bikeId": { "type": "string" },
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "latitude": { "type": ["number", "null"] },
+        "longitude": { "type": ["number", "null"] },
+        "accuracy": { "type": ["number", "null"] },
+        "lastUpdated": { "type": ["number", "null"] },
+        "startedAt": { "type": "number" },
+        "endedAt": { "type": ["number", "null"] },
+        "status": { "type": "string", "enum": ["ACTIVE", "PAUSED", "ENDED"] }
+      },
+      "required": ["trackingId", "reservationId", "bikeId", "status", "startedAt"]
+    }
+  },
+  "firestore": {
+    "/bikes/{bikeId}": {
+      "schema": { "$ref": "#/entities/Bike" },
+      "description": "Collection of bikes available for rental"
+    },
+    "/clients/{clientId}": {
+      "schema": { "$ref": "#/entities/Client" },
+      "description": "Collection of registered customers"
+    },
+    "/reservations/{reservationId}": {
+      "schema": { "$ref": "#/entities/Reservation" },
+      "description": "Collection of reservations and ride telemetry"
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/Setting" },
+      "description": "Global application and shop settings"
+    },
+    "/tracking_sessions/{trackingId}": {
+      "schema": { "$ref": "#/entities/TrackingSession" },
+      "description": "Private real-time GPS tracking session for an active rental"
+    }
+  }
+}
