@@ -4,7 +4,6 @@ import { HomePage } from './components/HomePage';
 import { BookingFlow } from './components/BookingFlow';
 import { AdminPanel } from './components/AdminPanel';
 import { ActiveRideTracker } from './components/ActiveRideTracker';
-import { WhatsAppFloatingButton } from './components/WhatsAppFloatingButton';
 import { CustomerLoginModal } from './components/CustomerLoginModal';
 import { Bike, CustomerData, RentalPlan, Reservation, SystemSettings } from './types';
 import { 
@@ -329,11 +328,6 @@ export default function App() {
           )
         )}
       </div>
-
-      {/* Fixed WhatsApp Action Button (visible throughout the system, hidden during active tracker to not obstruct controls) */}
-      {view !== 'ride-tracker' && (
-        <WhatsAppFloatingButton customUrl={settings.whatsappOfficialUrl} />
-      )}
 
       {/* Quick Customer Login Modal */}
       <CustomerLoginModal
