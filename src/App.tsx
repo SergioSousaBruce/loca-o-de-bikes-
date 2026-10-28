@@ -54,6 +54,16 @@ export default function App() {
     return null;
   });
 
+  const [preselectedPlan, setPreselectedPlan] = useState<RentalPlan | null>(() => {
+    try {
+      const saved = localStorage.getItem('pedalae_preselected_plan');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch {}
+    return null;
+  });
+
   // Track active reservation ID for tracker (specific to this customer's device)
   const [activeRideReservationId, setActiveRideReservationId] = useState<string | null>(() => {
     try {
@@ -178,6 +188,19 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleSelectPlanForBooking = (plan: RentalPlan) => {
+    setPreselectedPlan(plan);
+    try {
+      localStorage.setItem('pedalae_preselected_plan', JSON.stringify(plan));
+    } catch {}
+    const el = document.getElementById('section-bikes');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      handleSetView('booking');
+    }
+  };
+
   const handleStartBooking = () => {
     setPreselectedBike(null);
     try {
@@ -257,6 +280,8 @@ export default function App() {
             bikes={bikes}
             reservations={reservations}
             plans={settings.plans}
+            selectedPlan={preselectedPlan}
+            onSelectPlanForBooking={handleSelectPlanForBooking}
             identifiedCustomer={identifiedCustomer}
             onOpenCustomerLogin={() => setIsCustomerLoginOpen(true)}
             onLogoutCustomer={handleLogoutCustomer}
@@ -278,6 +303,7 @@ export default function App() {
             reservations={reservations}
             initialBike={preselectedBike}
             initialCustomer={identifiedCustomer}
+            initialPlan={preselectedPlan}
             onCancel={handleNavigateHome}
             onFinished={(res) => {
               // Reservation created, save ID

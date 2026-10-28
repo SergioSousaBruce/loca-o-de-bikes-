@@ -77,6 +77,7 @@ interface BookingFlowProps {
   reservations?: Reservation[];
   initialBike?: Bike | null;
   initialCustomer?: CustomerData | null;
+  initialPlan?: RentalPlan | null;
   onCancel: () => void;
   onFinished: (reservation: Reservation) => void;
   onStartTracking?: (reservation: Reservation) => void;
@@ -90,6 +91,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
   reservations = [],
   initialBike,
   initialCustomer,
+  initialPlan,
   onCancel,
   onFinished,
   onStartTracking,
@@ -127,12 +129,25 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
   const selectedBike = selectedBikes[0] || null;
 
   const [selectedPlan, setSelectedPlan] = useState<RentalPlan>(() => {
+    if (initialPlan) return initialPlan;
+    if (savedBookingDraft?.selectedPlanId) {
+      const foundPlan = settings.plans.find((p) => p.id === savedBookingDraft.selectedPlanId);
+      if (foundPlan) return foundPlan;
+    }
     if (savedBookingDraft?.selectedPlanDuration) {
       const foundPlan = settings.plans.find((p) => p.durationHours === savedBookingDraft.selectedPlanDuration);
       if (foundPlan) return foundPlan;
     }
-    return settings.plans[1] || settings.plans[0];
+    // Default to the first plan (e.g. 1 HORA - R$ 10,00)
+    return settings.plans[0] || { id: 'p1', durationHours: 1, label: '1 HORA', price: 10.00 };
   });
+
+  // Sync initialPlan if passed or changed
+  useEffect(() => {
+    if (initialPlan) {
+      setSelectedPlan(initialPlan);
+    }
+  }, [initialPlan]);
 
   // Total price across all selected bikes
   const totalRentalPrice = (selectedPlan?.price || 0) * (selectedBikes.length || 1);
@@ -370,6 +385,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
         currentStep,
         selectedBikeId: selectedBike?.id,
         selectedBikeIds: selectedBikes.map((b) => b.id),
+        selectedPlanId: selectedPlan?.id,
         selectedPlanDuration: selectedPlan?.durationHours,
         selectedDate,
         selectedStartTime,
@@ -1348,14 +1364,18 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                   const isPlanSelected = selectedPlan.id === plan.id;
                   const planTotal = plan.price * selectedBikes.length;
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={plan.id}
                       id={`booking-select-plan-${plan.id}`}
-                      onClick={() => setSelectedPlan(plan)}
-                      className={`relative p-3.5 rounded-2xl border-2 text-center transition-all cursor-pointer ${
+                      onClick={() => {
+                        setSelectedPlan(plan);
+                        setFormError(null);
+                      }}
+                      className={`relative p-3.5 rounded-2xl border-2 text-center transition-all cursor-pointer flex flex-col justify-between items-center w-full active:scale-95 ${
                         isPlanSelected
-                          ? 'bg-amber-500 text-black border-amber-400 shadow-lg shadow-amber-500/20 font-bold'
-                          : 'bg-zinc-900/90 border-zinc-800 text-zinc-200 hover:border-zinc-700'
+                          ? 'bg-amber-500 text-black border-amber-400 shadow-lg shadow-amber-500/20 font-bold scale-[1.02]'
+                          : 'bg-zinc-900/90 border-zinc-800 text-zinc-200 hover:border-amber-500/40 hover:bg-zinc-800'
                       }`}
                     >
                       {plan.popular && (
@@ -1378,7 +1398,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                           ? `${plan.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} / bike`
                           : `${plan.durationHours} hora${plan.durationHours > 1 ? 's' : ''} de pedal`}
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -1446,9 +1466,23 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                 ))}
               </div>
 
-              <div className="flex items-center justify-between text-xs pt-1 text-zinc-400 border-t border-zinc-800/50">
-                <span>Plano: <strong className="text-white">{selectedPlan.label} ({selectedPlan.durationHours}h)</strong></span>
-                <span>Valor Total: <strong className="text-amber-400 font-bold font-mono">{totalRentalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</strong></span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs pt-1.5 text-zinc-400 border-t border-zinc-800/50 gap-1.5">
+                <div className="flex items-center gap-2">
+                  <span>Plano: <strong className="text-white">{selectedPlan.label} ({selectedPlan.durationHours}h - {selectedPlan.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })})</strong></span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentStep(1);
+                      setTimeout(() => {
+                        document.getElementById('section-tempo-aluguel')?.scrollIntoView({ behavior: 'smooth' });
+                      }, 100);
+                    }}
+                    className="text-amber-400 hover:text-amber-300 underline font-bold cursor-pointer"
+                  >
+                    Trocar Plano
+                  </button>
+                </div>
+                <span>Valor Total: <strong className="text-amber-400 font-bold font-mono text-sm">{totalRentalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</strong></span>
               </div>
             </div>
 
