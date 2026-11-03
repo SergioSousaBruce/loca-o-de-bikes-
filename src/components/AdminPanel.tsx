@@ -65,14 +65,17 @@ import {
   Image as ImageIcon,
   Sparkles,
   Loader2,
-  Share2
+  Share2,
+  MessageCircle
 } from 'lucide-react';
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { 
   generateReservationPDF, 
   downloadOrShareReservationPDF, 
-  openReservationPDFInNewTab 
+  openReservationPDFInNewTab,
+  downloadOrShareCustomerPDF,
+  downloadBlobAsFile
 } from '../lib/pdfGenerator';
 import { OFFICIAL_WHATSAPP_LINK, getWhatsAppSendTermToClientUrl } from '../lib/whatsapp';
 import { RentalHistoryView } from './RentalHistoryView';
@@ -309,23 +312,81 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   // Quick QR Code Scanner input
   const [qrScanInput, setQrScanInput] = useState('');
 
-  // Backup Export & Import Handlers
+  // Backup Export & Import Handlers with bulletproof download mechanics
   const handleExportBackup = () => {
     try {
       const json = exportDatabaseBackup();
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
       const nowStr = new Date().toISOString().split('T')[0];
-      a.href = url;
-      a.download = `pedalae-backup-oficial-${nowStr}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      showAdminToast('Backup completo exportado com sucesso! Arquivo JSON salvo com segurança.');
+      const filename = `pedalae-backup-oficial-${nowStr}.json`;
+      downloadBlobAsFile(blob, filename);
+      showAdminToast('Backup completo exportado com sucesso! Arquivo JSON salvo com segurança.', 'success');
     } catch (e: any) {
       showAdminToast(`Erro ao exportar backup: ${e.message}`, 'error');
+    }
+  };
+
+  // Export Clients CSV with UTF-8 BOM so Excel and mobile open with correct accents
+  const handleExportClientsCSV = () => {
+    try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const header = 'Nome Completo,CPF,WhatsApp,Email,Data Nascimento,Endereco,Total Locacoes,Ultima Reserva\n';
+      const rows = clients.map((c) => {
+        const lastDate = c.lastReservationAt ? new Date(c.lastReservationAt).toLocaleDateString('pt-BR') : 'Hoje';
+        const cleanName = (c.fullName || '').replace(/"/g, '""');
+        const cleanAddr = (c.fullAddress || '').replace(/"/g, '""');
+        return `"${cleanName}","${c.cpf}","${c.whatsapp}","${c.email || ''}","${c.birthDate || ''}","${cleanAddr}","${c.totalReservations || 1}","${lastDate}"`;
+      }).join('\n');
+      const blob = new Blob(['\uFEFF' + header + rows], { type: 'text/csv;charset=utf-8;' });
+      downloadBlobAsFile(blob, `pedalae_clientes_${todayStr}.csv`);
+      showAdminToast('Planilha de clientes exportada com sucesso (Excel / CSV)!', 'success');
+    } catch (e: any) {
+      showAdminToast(`Erro ao exportar clientes: ${e.message}`, 'error');
+    }
+  };
+
+  // Export Reservations CSV with UTF-8 BOM
+  const handleExportReservationsCSV = () => {
+    try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const header = 'Codigo,Cliente,CPF,WhatsApp,Bike,Data,Inicio,Fim,Valor,Status\n';
+      const rows = reservations.map((r) => {
+        const cleanClient = (r.customerSnapshot?.fullName || '').replace(/"/g, '""');
+        const cleanBike = (r.bikeSnapshot?.name || '').replace(/"/g, '""');
+        return `"${r.code}","${cleanClient}","${r.customerSnapshot?.cpf || ''}","${r.customerSnapshot?.whatsapp || ''}","${cleanBike}","${r.date}","${r.startTime}","${r.endTime}","${r.totalPrice}","${r.status}"`;
+      }).join('\n');
+      const blob = new Blob(['\uFEFF' + header + rows], { type: 'text/csv;charset=utf-8;' });
+      downloadBlobAsFile(blob, `pedalae_reservas_${todayStr}.csv`);
+      showAdminToast('Planilha de reservas exportada com sucesso (Excel / CSV)!', 'success');
+    } catch (e: any) {
+      showAdminToast(`Erro ao exportar reservas: ${e.message}`, 'error');
+    }
+  };
+
+  // Official Customer PDF Registration Card Download
+  const handleDownloadCustomerPDF = async (customer: CustomerData) => {
+    const custId = customer.id || customer.cpf;
+    if (generatingPdfCustomerId === custId) return;
+    setGeneratingPdfCustomerId(custId);
+    try {
+      const result = await downloadOrShareCustomerPDF(customer, settings);
+      setLastGeneratedCustomerPdf({
+        customerId: custId,
+        customerName: customer.fullName,
+        blobUrl: result.blobUrl,
+        filename: result.filename,
+        whatsapp: customer.whatsapp,
+      });
+      if (result.method === 'share') {
+        showAdminToast(`Ficha cadastral de ${customer.fullName} aberta no compartilhador do celular!`, 'success');
+      } else {
+        showAdminToast(`Ficha oficial do cliente ${customer.fullName} baixada com sucesso!`, 'success');
+      }
+    } catch (err: any) {
+      console.error('Erro ao gerar ficha do cliente:', err);
+      showAdminToast('Atenção: Não foi possível processar o download da ficha. Verifique se o navegador bloqueou arquivos.', 'error');
+    } finally {
+      setGeneratingPdfCustomerId(null);
     }
   };
 
@@ -755,6 +816,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [pdfConfirmedToast, setPdfConfirmedToast] = useState<string | null>(null);
   const [generatingPdfResId, setGeneratingPdfResId] = useState<string | null>(null);
   const [lastGeneratedPdf, setLastGeneratedPdf] = useState<{ resId: string; code: string; blobUrl: string; filename: string } | null>(null);
+  const [generatingPdfCustomerId, setGeneratingPdfCustomerId] = useState<string | null>(null);
+  const [lastGeneratedCustomerPdf, setLastGeneratedCustomerPdf] = useState<{
+    customerId: string;
+    customerName: string;
+    blobUrl: string;
+    filename: string;
+    whatsapp?: string;
+  } | null>(null);
 
   // Action: Delete Client Permanently (Full Owner Autonomy)
   const [clientToDelete, setClientToDelete] = useState<CustomerData | null>(null);
@@ -836,8 +905,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
         if (result.method === 'share') {
           setPdfConfirmedToast(`Pagamento da reserva ${res.code} confirmado! Termo PDF enviado para o compartilhador do celular.`);
+          showAdminToast(`Pagamento da reserva ${res.code} confirmado! Termo PDF aberto no compartilhador.`, 'success');
         } else {
           setPdfConfirmedToast(`Pagamento da reserva ${res.code} confirmado! PDF com sua assinatura (Sergio de Sousa Bruce) e foto baixado.`);
+          showAdminToast(`PDF oficial da reserva ${res.code} baixado com sucesso!`, 'success');
         }
         setTimeout(() => setPdfConfirmedToast(null), 10000);
       } else {
@@ -851,8 +922,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
         if (result.method === 'share') {
           setPdfConfirmedToast(`Termo oficial da reserva ${res.code} aberto no compartilhador!`);
+          showAdminToast(`Termo oficial da reserva ${res.code} aberto no compartilhador!`, 'success');
         } else {
           setPdfConfirmedToast(`PDF oficial da reserva ${res.code} baixado com sucesso!`);
+          showAdminToast(`PDF oficial da reserva ${res.code} baixado com sucesso!`, 'success');
         }
         setTimeout(() => setPdfConfirmedToast(null), 8000);
       }
@@ -2340,18 +2413,102 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={handleExportClientsCSV}
+                  type="button"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs cursor-pointer transition-all shadow-sm active:scale-95"
+                  title="Baixar lista completa de clientes em planilha Excel / CSV"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Baixar Lista (Excel / CSV)</span>
+                </button>
+
                 <button
                   onClick={handleExportBackup}
                   type="button"
-                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-amber-400 font-bold text-xs border border-zinc-700 cursor-pointer transition-all shadow-sm"
-                  title="Baixar lista completa de clientes e contatos"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-amber-400 font-bold text-xs border border-zinc-700 cursor-pointer transition-all shadow-sm"
+                  title="Baixar arquivo de segurança com todas as reservas e clientes"
                 >
-                  <Download className="w-4 h-4" />
-                  <span>Baixar Backup de Clientes (.JSON)</span>
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Backup (.JSON)</span>
                 </button>
               </div>
             </div>
+
+            {/* Banner when a Customer PDF has been generated */}
+            {lastGeneratedCustomerPdf && (
+              <div className="p-4 rounded-2xl bg-amber-500/15 border-2 border-amber-500/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg animate-fade-in">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500 text-black flex items-center justify-center font-black flex-shrink-0">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-white text-sm flex items-center gap-2">
+                      <span>Ficha do Cliente Pronta para Download!</span>
+                      <span className="text-[10px] text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-full font-bold">PDF Oficial</span>
+                    </div>
+                    <p className="text-xs text-zinc-300">
+                      <strong>{lastGeneratedCustomerPdf.customerName}</strong> • Arquivo: <span className="font-mono text-amber-300">{lastGeneratedCustomerPdf.filename}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                  <a
+                    href={lastGeneratedCustomerPdf.blobUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="py-2 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs flex items-center gap-1.5 border border-zinc-700 transition-colors"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Abrir / Ver PDF</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = lastGeneratedCustomerPdf.blobUrl;
+                      link.download = lastGeneratedCustomerPdf.filename;
+                      link.style.display = 'none';
+                      document.body.appendChild(link);
+                      link.click();
+                      setTimeout(() => {
+                        if (link.parentNode) document.body.removeChild(link);
+                      }, 1500);
+                      showAdminToast('Download da ficha reiniciado com sucesso!', 'success');
+                    }}
+                    className="py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Baixar Novamente</span>
+                  </button>
+
+                  {lastGeneratedCustomerPdf.whatsapp && (
+                    <a
+                      href={`https://wa.me/55${lastGeneratedCustomerPdf.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${lastGeneratedCustomerPdf.customerName}! Aqui está a confirmação da sua Ficha Cadastral Oficial no PEDALAÊ Parintins.`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-colors"
+                      title="Enviar pelo WhatsApp"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span>WhatsApp</span>
+                    </a>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setLastGeneratedCustomerPdf(null)}
+                    className="p-2 text-zinc-400 hover:text-white cursor-pointer ml-auto sm:ml-0"
+                    title="Fechar aviso"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Permanent Storage & Autonomy Assurance Banner */}
             <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-200">
@@ -2361,7 +2518,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   Armazenamento Permanente e Autonomia Total ({clients.length} clientes salvos)
                 </div>
                 <p className="text-[11px] text-zinc-300 leading-relaxed">
-                  Os cadastros dos seus clientes nunca são apagados automaticamente. Eles ficam salvos permanentemente no banco de dados e apenas você, como administrador, tem autonomia para excluir um cadastro manualmente clicando no botão "Excluir".
+                  Os cadastros dos seus clientes nunca são apagados automaticamente. Eles ficam salvos permanentemente no banco de dados e apenas você, como administrador, tem autonomia para baixar a ficha oficial em PDF ou excluir um cadastro manualmente clicando no botão "Excluir".
                 </p>
               </div>
             </div>
@@ -2457,15 +2614,54 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                                 : 'Hoje'}
                             </td>
                             <td className="py-3 px-4 text-right">
-                              <button
-                                type="button"
-                                onClick={() => setClientToDelete(c)}
-                                className="px-2.5 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 hover:text-rose-200 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
-                                title="Excluir cadastro deste cliente"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                                <span>Excluir</span>
-                              </button>
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  disabled={generatingPdfCustomerId === (c.id || c.cpf)}
+                                  onClick={() => handleDownloadCustomerPDF(c)}
+                                  className={`px-2.5 py-1.5 rounded-lg text-black font-extrabold text-[11px] inline-flex items-center gap-1 cursor-pointer transition-all shadow-sm ${
+                                    generatingPdfCustomerId === (c.id || c.cpf)
+                                      ? 'bg-amber-400/70 cursor-not-allowed opacity-80'
+                                      : 'bg-amber-500 hover:bg-amber-400 active:scale-95'
+                                  }`}
+                                  title={`Baixar Ficha Cadastral Oficial de ${c.fullName} em PDF`}
+                                >
+                                  {generatingPdfCustomerId === (c.id || c.cpf) ? (
+                                    <>
+                                      <Loader2 className="w-3 h-3 animate-spin text-black" />
+                                      <span>Gerando...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Download className="w-3 h-3 text-black" />
+                                      <span>Baixar Ficha</span>
+                                    </>
+                                  )}
+                                </button>
+
+                                {lastGeneratedCustomerPdf && lastGeneratedCustomerPdf.customerId === (c.id || c.cpf) && (
+                                  <a
+                                    href={lastGeneratedCustomerPdf.blobUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-2 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-amber-300 text-[11px] font-bold inline-flex items-center gap-1 border border-amber-500/30"
+                                    title="Abrir PDF gerado em nova aba"
+                                  >
+                                    <Eye className="w-3 h-3 text-amber-400" />
+                                    <span>Ver</span>
+                                  </a>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => setClientToDelete(c)}
+                                  className="px-2 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 hover:text-rose-200 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                                  title="Excluir cadastro deste cliente"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  <span className="hidden sm:inline">Excluir</span>
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -2604,9 +2800,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           filename: result.filename,
                         });
                         setPdfConfirmedToast(`PDF oficial da reserva ${r.code} gerado com sucesso!`);
+                        showAdminToast(`PDF oficial da reserva ${r.code} gerado com sucesso!`, 'success');
                         setTimeout(() => setPdfConfirmedToast(null), 8000);
                       } catch (err) {
                         console.error('Erro ao gerar PDF:', err);
+                        showAdminToast('Não foi possível gerar o PDF. Verifique se o navegador bloqueou o download.', 'error');
                       } finally {
                         setGeneratingPdfResId(null);
                       }
@@ -2629,6 +2827,39 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       </>
                     )}
                   </button>
+
+                  {/* Immediate Direct Preview & Re-Download Links */}
+                  {lastGeneratedPdf && lastGeneratedPdf.resId === r.id && (
+                    <div className="pt-2 flex items-center gap-2 animate-fade-in">
+                      <a
+                        href={lastGeneratedPdf.blobUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 py-1.5 px-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-[11px] flex items-center justify-center gap-1 border border-zinc-700 transition-colors"
+                      >
+                        <Eye className="w-3 h-3 text-amber-400" />
+                        <span>Abrir / Ver PDF</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = lastGeneratedPdf.blobUrl;
+                          link.download = lastGeneratedPdf.filename;
+                          link.style.display = 'none';
+                          document.body.appendChild(link);
+                          link.click();
+                          setTimeout(() => { if (link.parentNode) document.body.removeChild(link); }, 1500);
+                          showAdminToast('Download do PDF reiniciado!', 'success');
+                        }}
+                        className="py-1.5 px-2.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-[11px] flex items-center justify-center gap-1 border border-amber-500/30 transition-colors cursor-pointer"
+                        title="Baixar novamente"
+                      >
+                        <Download className="w-3 h-3" />
+                        <span>Baixar</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -2641,7 +2872,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             <div>
               <h2 className="text-2xl font-black text-white">CENTRAL DE RELATÓRIOS</h2>
               <p className="text-xs text-zinc-400">
-                Exportação de dados operacionais e métricas de desempenho
+                Exportação de dados operacionais e métricas de desempenho em planilhas compatíveis com Excel
               </p>
             </div>
 
@@ -2649,62 +2880,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-3">
                 <h3 className="font-bold text-white text-base">Relatório de Reservas</h3>
                 <p className="text-xs text-zinc-400">
-                  Exportar lista completa de reservas com dados de horário, clientes e status.
+                  Exportar lista completa de reservas com dados de horário, clientes e status para Excel.
                 </p>
                 <button
-                  onClick={() => {
-                    const csvContent =
-                      'data:text/csv;charset=utf-8,' +
-                      'Codigo,Cliente,CPF,Bike,Data,Inicio,Fim,Valor,Status\n' +
-                      reservations
-                        .map(
-                          (r) =>
-                            `"${r.code}","${r.customerSnapshot.fullName}","${r.customerSnapshot.cpf}","${r.bikeSnapshot.name}","${r.date}","${r.startTime}","${r.endTime}","${r.totalPrice}","${r.status}"`
-                        )
-                        .join('\n');
-                    const encodedUri = encodeURI(csvContent);
-                    const link = document.createElement('a');
-                    link.setAttribute('href', encodedUri);
-                    link.setAttribute('download', `pedalae_reservas_${todayStr}.csv`);
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                  }}
-                  className="w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold flex items-center justify-center gap-2"
+                  type="button"
+                  onClick={handleExportReservationsCSV}
+                  className="w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors"
                 >
                   <Download className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Exportar Reservas (CSV)</span>
+                  <span>Exportar Reservas (Excel / CSV)</span>
                 </button>
               </div>
 
               <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-3">
                 <h3 className="font-bold text-white text-base">Relatório de Clientes</h3>
                 <p className="text-xs text-zinc-400">
-                  Exportar base de clientes cadastrados, telefones e frequência de locações.
+                  Exportar base de clientes cadastrados, telefones e frequência de locações para Excel.
                 </p>
                 <button
-                  onClick={() => {
-                    const csvContent =
-                      'data:text/csv;charset=utf-8,' +
-                      'Nome,CPF,WhatsApp,Email,Endereco,TotalReservas\n' +
-                      clients
-                        .map(
-                          (c) =>
-                            `"${c.fullName}","${c.cpf}","${c.whatsapp}","${c.email}","${c.fullAddress}","${c.totalReservations || 1}"`
-                        )
-                        .join('\n');
-                    const encodedUri = encodeURI(csvContent);
-                    const link = document.createElement('a');
-                    link.setAttribute('href', encodedUri);
-                    link.setAttribute('download', `pedalae_clientes_${todayStr}.csv`);
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                  }}
-                  className="w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold flex items-center justify-center gap-2"
+                  type="button"
+                  onClick={handleExportClientsCSV}
+                  className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-extrabold flex items-center justify-center gap-2 cursor-pointer transition-colors"
                 >
-                  <Download className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Exportar Clientes (CSV)</span>
+                  <Download className="w-3.5 h-3.5 text-black" />
+                  <span>Exportar Clientes (Excel / CSV)</span>
                 </button>
               </div>
             </div>
