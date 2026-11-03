@@ -54,15 +54,7 @@ export default function App() {
     return null;
   });
 
-  const [preselectedPlan, setPreselectedPlan] = useState<RentalPlan | null>(() => {
-    try {
-      const saved = localStorage.getItem('pedalae_preselected_plan');
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch {}
-    return null;
-  });
+  const [preselectedPlan, setPreselectedPlan] = useState<RentalPlan | null>(null);
 
   // Track active reservation ID for tracker (specific to this customer's device)
   const [activeRideReservationId, setActiveRideReservationId] = useState<string | null>(() => {
@@ -109,6 +101,10 @@ export default function App() {
   // Initialize DB and real-time Firestore subscriptions
   useEffect(() => {
     initializeDatabaseIfEmpty();
+
+    try {
+      localStorage.removeItem('pedalae_preselected_plan');
+    } catch {}
 
     const unsubSettings = subscribeSettings((st) => setSettings(st));
     const unsubBikes = subscribeBikes((bList) => setBikes(bList));
@@ -181,8 +177,10 @@ export default function App() {
 
   const handleSelectBikeForBooking = (bike: Bike) => {
     setPreselectedBike(bike);
+    setPreselectedPlan(null); // Customer will select their plan dynamically in Step 2
     try {
       localStorage.setItem('pedalae_preselected_bike', JSON.stringify(bike));
+      localStorage.removeItem('pedalae_preselected_plan');
     } catch {}
     handleSetView('booking');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -190,27 +188,31 @@ export default function App() {
 
   const handleSelectPlanForBooking = (plan: RentalPlan) => {
     setPreselectedPlan(plan);
+    setPreselectedBike(null);
     try {
-      localStorage.setItem('pedalae_preselected_plan', JSON.stringify(plan));
+      localStorage.removeItem('pedalae_preselected_bike');
+      localStorage.removeItem('pedalae_preselected_plan');
     } catch {}
-    const el = document.getElementById('section-bikes');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      handleSetView('booking');
-    }
+    handleSetView('booking');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleStartBooking = () => {
     setPreselectedBike(null);
+    setPreselectedPlan(null);
     try {
       localStorage.removeItem('pedalae_preselected_bike');
+      localStorage.removeItem('pedalae_preselected_plan');
     } catch {}
     handleSetView('booking');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleNavigateHome = () => {
+    setPreselectedPlan(null);
+    try {
+      localStorage.removeItem('pedalae_preselected_plan');
+    } catch {}
     handleSetView('home');
   };
 
@@ -308,8 +310,12 @@ export default function App() {
             onFinished={(res) => {
               // Reservation created, save ID
               setActiveRideReservationId(res.id);
+              setPreselectedPlan(null);
+              setPreselectedBike(null);
               try {
                 localStorage.setItem('pedalae_active_ride_id', res.id);
+                localStorage.removeItem('pedalae_preselected_bike');
+                localStorage.removeItem('pedalae_preselected_plan');
               } catch {}
             }}
             onStartTracking={(res) => {

@@ -150,15 +150,14 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
     return 1; // new customer starts with registration
   });
 
-  // Rental Plan / Hours (Step 2)
-  const [selectedPlan, setSelectedPlan] = useState<RentalPlan>(() => {
+  // Rental Plan / Hours (Step 2) - Customer must pick explicitly if not pre-provided
+  const [selectedPlan, setSelectedPlan] = useState<RentalPlan | null>(() => {
     if (initialPlan) return initialPlan;
     if (savedBookingDraft?.selectedPlanId) {
       const foundPlan = settings.plans.find((p) => p.id === savedBookingDraft.selectedPlanId);
       if (foundPlan) return foundPlan;
     }
-    // Default to the first plan in settings
-    return settings.plans[0] || { id: 'p1', durationHours: 1, label: '1 HORA', price: 10.00 };
+    return null;
   });
 
   useEffect(() => {
@@ -224,7 +223,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
     return minutesToTime(endMins);
   };
 
-  const calculatedEndTime = calculateEndTime(selectedStartTime, selectedPlan.durationHours);
+  const calculatedEndTime = calculateEndTime(selectedStartTime, selectedPlan?.durationHours || 1);
 
   // Bikes Selection (Step 5 - Final choice step)
   const [bikeRentalMode, setBikeRentalMode] = useState<'single' | 'group'>('single');
@@ -528,7 +527,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
   const validateStep2 = () => {
     setFormError(null);
     if (!selectedPlan) {
-      triggerError('Selecione uma opção de horas para continuar.');
+      triggerError('Por favor, escolha quantas horas você deseja pedalar para continuar.');
       return;
     }
     setCurrentStep(3);
@@ -548,12 +547,13 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
 
   // Generate time slots for Step 4
   const getSlots = () => {
+    const durationHours = selectedPlan?.durationHours || 1;
     const openMins = timeToMinutes(settings.openingTime || '17:00');
     const closeMins = timeToMinutes(settings.closingTime || '23:00');
     const interval = settings.slotIntervalMinutes || 30;
     const slots: string[] = [];
 
-    for (let m = openMins; m + selectedPlan.durationHours * 60 <= closeMins; m += interval) {
+    for (let m = openMins; m + durationHours * 60 <= closeMins; m += interval) {
       slots.push(minutesToTime(m));
     }
     return slots;
@@ -612,6 +612,11 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
   // Step 5: Final submit -> Creates reservation & advances to Step 6 (PIX)
   const handleFinalSubmit = async () => {
     setFormError(null);
+    if (!selectedPlan) {
+      triggerError('Por favor, selecione quantas horas você deseja pedalar para continuar.');
+      setCurrentStep(2);
+      return;
+    }
     if (!selectedBikes.length) {
       triggerError('Selecione uma das bicicletas disponíveis para continuar.');
       return;
@@ -1323,7 +1328,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
             {/* Large Plans Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {settings.plans.map((plan) => {
-                const isSelected = selectedPlan.id === plan.id;
+                const isSelected = selectedPlan?.id === plan.id;
                 const calculatedPrice = plan.price * (selectedBikes.length || 1);
 
                 return (
@@ -1392,9 +1397,18 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                 id="btn-step2-next"
                 type="button"
                 onClick={validateStep2}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:brightness-110 text-black font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-amber-500/25 active:scale-98 transition-all cursor-pointer"
+                disabled={!selectedPlan}
+                className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                  selectedPlan
+                    ? 'bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:brightness-110 text-black shadow-xl shadow-amber-500/25 active:scale-98'
+                    : 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700'
+                }`}
               >
-                <span>Avançar para Escolher o Dia</span>
+                <span>
+                  {selectedPlan
+                    ? `Avançar com ${selectedPlan.label} — ${((selectedPlan.price * (selectedBikes.length || 1))).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`
+                    : 'Selecione uma opção de horas acima para avançar'}
+                </span>
                 <ArrowRight className="w-4 h-4 stroke-[3]" />
               </button>
             </div>
@@ -1422,7 +1436,9 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-3.5 flex items-center justify-between text-xs">
               <div>
                 <span className="text-zinc-400">Plano Selecionado:</span>
-                <span className="font-black text-white ml-1.5">{selectedPlan.label} ({selectedPlan.durationHours}h)</span>
+                <span className="font-black text-white ml-1.5">
+                  {selectedPlan ? `${selectedPlan.label} (${selectedPlan.durationHours}h)` : 'Não selecionado'}
+                </span>
               </div>
               <div className="text-right">
                 <span className="text-zinc-400">Total:</span>
@@ -1615,7 +1631,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
               <div className="text-right">
                 <span className="text-zinc-400 font-medium">Devolução Prevista:</span>
                 <div className="text-white font-black text-lg mt-0.5">
-                  {calculatedEndTime} ({selectedPlan.durationHours}h de pedal)
+                  {calculatedEndTime} {selectedPlan ? `(${selectedPlan.durationHours}h de pedal)` : ''}
                 </div>
               </div>
             </div>

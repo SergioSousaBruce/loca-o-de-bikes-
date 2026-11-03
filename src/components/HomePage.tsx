@@ -264,27 +264,19 @@ export const HomePage: React.FC<HomePageProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
             {plans.map((plan) => {
-              const isSelected = selectedPlan?.id === plan.id;
               return (
                 <div
                   key={plan.id}
                   onClick={() => {
                     onSelectPlanForBooking?.(plan);
-                    onStartBooking();
                   }}
                   className={`relative rounded-3xl p-6 text-center flex flex-col justify-between transition-all duration-300 cursor-pointer ${
-                    isSelected
-                      ? 'bg-gradient-to-b from-emerald-500/20 via-zinc-900 to-zinc-950 border-2 border-emerald-400 shadow-xl shadow-emerald-500/20 ring-2 ring-emerald-400/50 scale-[1.02]'
-                      : plan.popular
+                    plan.popular
                       ? 'bg-gradient-to-b from-amber-500/15 via-zinc-900 to-zinc-950 border-2 border-amber-500 shadow-xl shadow-amber-500/15 hover:border-amber-400'
                       : 'bg-zinc-900/80 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900'
                   }`}
                 >
-                  {isSelected ? (
-                    <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-emerald-500 text-black text-[11px] font-black uppercase px-3.5 py-0.5 rounded-full shadow-lg whitespace-nowrap">
-                      ✓ Plano Selecionado
-                    </span>
-                  ) : plan.popular ? (
+                  {plan.popular ? (
                     <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-amber-500 text-black text-[11px] font-black uppercase px-3.5 py-0.5 rounded-full shadow-lg whitespace-nowrap">
                       Mais Escolhido
                     </span>
@@ -323,21 +315,14 @@ export const HomePage: React.FC<HomePageProps> = ({
                     onClick={(e) => {
                       e.stopPropagation();
                       onSelectPlanForBooking?.(plan);
-                      onStartBooking();
                     }}
                     className={`mt-6 w-full py-3.5 px-4 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 ${
-                      isSelected
-                        ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/30'
-                        : plan.popular
+                      plan.popular
                         ? 'bg-amber-500 text-black hover:bg-amber-400 shadow-md shadow-amber-500/20'
                         : 'bg-zinc-800 hover:bg-amber-500 hover:text-black text-zinc-200'
                     }`}
                   >
-                    <span>
-                      {isSelected
-                        ? '✓ PLANO SELECIONADO'
-                        : `ESCOLHER PLANO DE R$ ${plan.price.toFixed(0)}`}
-                    </span>
+                    <span>{`ESCOLHER PLANO DE R$ ${plan.price.toFixed(0)}`}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -350,43 +335,10 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* Catálogo de Bikes Section - Spacious, Full Cards on Mobile */}
       <section id="section-bikes" className="py-12 sm:py-20 px-4 sm:px-6 bg-zinc-950">
         <div className="max-w-6xl mx-auto">
-          {/* Active Preselected Plan Banner */}
-          {selectedPlan && (
-            <div className="mb-6 sm:mb-8 p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-zinc-900 to-amber-500/10 border-2 border-amber-500/60 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500 text-black font-black flex items-center justify-center text-lg flex-shrink-0 shadow-md">
-                  ✓
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/40">
-                      Plano Ativo para Sua Reserva
-                    </span>
-                  </div>
-                  <h4 className="text-base sm:text-lg font-black text-white mt-0.5">
-                    {selectedPlan.label} — {selectedPlan.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} ({selectedPlan.durationHours}h de pedal)
-                  </h4>
-                  <p className="text-xs text-zinc-300">
-                    Toque na bicicleta desejada abaixo para prosseguir com este valor.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  document.getElementById('section-planos')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-amber-400 text-xs font-bold transition-all border border-zinc-700 flex-shrink-0 cursor-pointer"
-              >
-                Trocar Plano
-              </button>
-            </div>
-          )}
-
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
             <div>
               <span className="text-xs font-bold uppercase tracking-widest text-amber-400">
-                Passo 1 • Frota Pedalaê
+                Frota Pedalaê • Parintins
               </span>
               <h2 className="text-2xl sm:text-4xl font-extrabold text-white mt-1">
                 ESCOLHA SUA BIKE
