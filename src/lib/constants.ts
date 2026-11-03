@@ -49,6 +49,7 @@ A entrega da bicicleta está condicionada à conferência documental com foto e 
   instagramUrl: 'https://www.instagram.com/pedalae.parintins?stkn=MTl4YmZrMnM4MDhpYg==',
   facebookUrl: 'https://www.facebook.com/profile.php?id=61595687457272',
   tiktokUrl: 'https://www.tiktok.com/@pedalae.parintins',
+  appPublicUrl: 'https://ais-pre-rbt67jjdrmuum5j5smv6zn-295059394611.us-east1.run.app',
 };
 
 export const INITIAL_BIKES: Bike[] = [

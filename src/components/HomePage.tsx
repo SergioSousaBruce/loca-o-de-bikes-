@@ -61,6 +61,22 @@ export const HomePage: React.FC<HomePageProps> = ({
   const displayedBikes = bikeFilter === 'available' ? availableBikes : bikes;
 
   const [isHowItWorksOpen, setIsHowItWorksOpen] = React.useState(false);
+  const [shareCopied, setShareCopied] = React.useState(false);
+
+  const handleShareApp = () => {
+    const liveUrl = settings.appPublicUrl || (typeof window !== 'undefined' ? window.location.origin : 'https://ais-pre-rbt67jjdrmuum5j5smv6zn-295059394611.us-east1.run.app');
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      navigator.share({
+        title: 'PEDALAÊ - Aluguel de Bikes em Parintins/AM',
+        text: 'Alugue sua bike online no PEDALAÊ e curta a orla de Parintins!',
+        url: liveUrl,
+      }).catch(() => {});
+    } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(liveUrl);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 3000);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -150,11 +166,11 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mt-6 sm:mt-8 w-full max-w-md">
             <button
               id="btn-hero-reservar"
-              onClick={onScrollToBikes || onStartBooking}
+              onClick={onStartBooking}
               className="flex-1 inline-flex items-center justify-center gap-2.5 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-black font-extrabold text-sm sm:text-lg px-6 py-4 rounded-2xl hover:brightness-110 active:scale-98 transition-all shadow-xl shadow-amber-500/25 cursor-pointer"
             >
-              <span>🚲 ESCOLHER MINHA BIKE</span>
-              <ArrowRight className="w-5 h-5 text-black" />
+              <span>🚲 ALUGAR BIKE AGORA</span>
+              <ArrowRight className="w-5 h-5 text-black stroke-[2.5]" />
             </button>
 
             <button
@@ -254,7 +270,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   key={plan.id}
                   onClick={() => {
                     onSelectPlanForBooking?.(plan);
-                    if (onScrollToBikes) onScrollToBikes();
+                    onStartBooking();
                   }}
                   className={`relative rounded-3xl p-6 text-center flex flex-col justify-between transition-all duration-300 cursor-pointer ${
                     isSelected
@@ -307,7 +323,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     onClick={(e) => {
                       e.stopPropagation();
                       onSelectPlanForBooking?.(plan);
-                      if (onScrollToBikes) onScrollToBikes();
+                      onStartBooking();
                     }}
                     className={`mt-6 w-full py-3.5 px-4 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 ${
                       isSelected
@@ -724,6 +740,18 @@ export const HomePage: React.FC<HomePageProps> = ({
             </a>
           </div>
 
+          {/* Quick Share Link Button */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={handleShareApp}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-amber-400 border border-zinc-800 hover:border-amber-500/40 text-xs font-bold transition-all cursor-pointer active:scale-95 shadow-sm"
+            >
+              <Share2 className="w-3.5 h-3.5 text-amber-400" />
+              <span>{shareCopied ? '✓ Link Oficial Copiado!' : '📲 Compartilhar App PEDALAÊ com Amigos'}</span>
+            </button>
+          </div>
+
           <p className="max-w-md text-zinc-400 text-xs">
             {settings.address}
           </p>
@@ -808,11 +836,21 @@ export const HomePage: React.FC<HomePageProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
                 <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4.5 hover:border-amber-500/40 transition-colors">
                   <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-black text-lg mb-2.5">
+                    📝
+                  </div>
+                  <h4 className="font-bold text-white text-sm sm:text-base">1. Cadastro Rápido</h4>
+                  <p className="text-zinc-400 text-xs mt-1 leading-relaxed">
+                    Se for novo cliente, faz o cadastro em 1 minuto. Se já alugou antes, localiza seus dados por CPF ou WhatsApp.
+                  </p>
+                </div>
+
+                <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4.5 hover:border-amber-500/40 transition-colors">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-black text-lg mb-2.5">
                     ⏱️
                   </div>
-                  <h4 className="font-bold text-white text-sm sm:text-base">1. Escolha o tempo</h4>
+                  <h4 className="font-bold text-white text-sm sm:text-base">2. Escolha as Horas</h4>
                   <p className="text-zinc-400 text-xs mt-1 leading-relaxed">
-                    Opções de 1h, 2h, 3h ou 4h de pedal pelos melhores pontos e orla de Parintins.
+                    Escolha o valor e tempo: 1 hora, 2 horas ou mais de pedal livre com preço calculado na hora.
                   </p>
                 </div>
 
@@ -820,9 +858,19 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-black text-lg mb-2.5">
                     📅
                   </div>
-                  <h4 className="font-bold text-white text-sm sm:text-base">2. Escolha o horário</h4>
+                  <h4 className="font-bold text-white text-sm sm:text-base">3. Escolha o Dia</h4>
                   <p className="text-zinc-400 text-xs mt-1 leading-relaxed">
-                    Calendário inteligente com bloqueio de conflitos de disponibilidade em tempo real.
+                    Escolha o dia da semana: Segunda, Terça, Quarta, Quinta, Sexta, Sábado ou Domingo.
+                  </p>
+                </div>
+
+                <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4.5 hover:border-amber-500/40 transition-colors">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-black text-lg mb-2.5">
+                    ⏰
+                  </div>
+                  <h4 className="font-bold text-white text-sm sm:text-base">4. Horário de Retirada</h4>
+                  <p className="text-zinc-400 text-xs mt-1 leading-relaxed">
+                    Selecione o horário em que você virá retirar a bicicleta no ponto do PEDALAÊ.
                   </p>
                 </div>
 
@@ -830,19 +878,9 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-black text-lg mb-2.5">
                     🚲
                   </div>
-                  <h4 className="font-bold text-white text-sm sm:text-base">3. Escolha sua bike</h4>
+                  <h4 className="font-bold text-white text-sm sm:text-base">5. Escolha sua Bike</h4>
                   <p className="text-zinc-400 text-xs mt-1 leading-relaxed">
-                    Selecione seu modelo e cor favoritos no catálogo de bikes disponíveis do dia.
-                  </p>
-                </div>
-
-                <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4.5 hover:border-amber-500/40 transition-colors">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-black text-lg mb-2.5">
-                    💳
-                  </div>
-                  <h4 className="font-bold text-white text-sm sm:text-base">4. Faça o pagamento</h4>
-                  <p className="text-zinc-400 text-xs mt-1 leading-relaxed">
-                    Chave PIX oficial com cópia rápida e valor total calculado de forma automática.
+                    Passo final da escolha: veja as opções de bikes disponíveis para aquele horário e selecione a sua!
                   </p>
                 </div>
 
@@ -850,19 +888,9 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-black text-lg mb-2.5">
                     📲
                   </div>
-                  <h4 className="font-bold text-white text-sm sm:text-base">5. Envie o comprovante</h4>
+                  <h4 className="font-bold text-white text-sm sm:text-base">6. PIX & WhatsApp</h4>
                   <p className="text-zinc-400 text-xs mt-1 leading-relaxed">
-                    Com um toque você abre o WhatsApp oficial com a mensagem e dados pré-formatados.
-                  </p>
-                </div>
-
-                <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4.5 hover:border-amber-500/40 transition-colors">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-black text-lg mb-2.5">
-                    ✅
-                  </div>
-                  <h4 className="font-bold text-white text-sm sm:text-base">6. Venha buscar e pedalar</h4>
-                  <p className="text-zinc-400 text-xs mt-1 leading-relaxed">
-                    Confira os detalhes da reserva, assine o termo presencialmente e curta o rolê!
+                    Pague via PIX e envie o comprovante no WhatsApp do Pedalaê para eu confirmar sua reserva!
                   </p>
                 </div>
               </div>
@@ -882,18 +910,12 @@ export const HomePage: React.FC<HomePageProps> = ({
                 type="button"
                 onClick={() => {
                   setIsHowItWorksOpen(false);
-                  setTimeout(() => {
-                    if (onScrollToBikes) {
-                      onScrollToBikes();
-                    } else {
-                      onStartBooking();
-                    }
-                  }, 100);
+                  onStartBooking();
                 }}
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-black font-extrabold text-sm hover:brightness-110 active:scale-98 transition-all shadow-lg shadow-amber-500/20 cursor-pointer"
               >
-                <span>🚲 ESCOLHER MINHA BIKE AGORA</span>
-                <ArrowRight className="w-4 h-4 text-black" />
+                <span>🚲 COMEÇAR ALUGUEL AGORA</span>
+                <ArrowRight className="w-4 h-4 text-black stroke-[2.5]" />
               </button>
             </div>
           </div>

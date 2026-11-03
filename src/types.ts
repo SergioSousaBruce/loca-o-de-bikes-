@@ -23,6 +23,7 @@ export interface RentalPlan {
   label: string; // e.g. "1 HORA"
   price: number; // e.g. 10.00
   popular?: boolean;
+  description?: string;
 }
 
 export type ReservationStatus =
@@ -168,4 +169,5 @@ export interface SystemSettings {
   instagramUrl?: string;
   facebookUrl?: string;
   tiktokUrl?: string;
+  appPublicUrl?: string;
 }
