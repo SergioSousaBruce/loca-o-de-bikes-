@@ -5,6 +5,7 @@ import { BookingFlow } from './components/BookingFlow';
 import { AdminPanel } from './components/AdminPanel';
 import { ActiveRideTracker } from './components/ActiveRideTracker';
 import { CustomerLoginModal } from './components/CustomerLoginModal';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { Bike, CustomerData, RentalPlan, Reservation, SystemSettings } from './types';
 import { 
   initializeDatabaseIfEmpty, 
@@ -250,6 +251,7 @@ export default function App() {
           onOpenBooking={handleStartBooking}
           onOpenAdmin={handleToggleAdmin}
           isAdminOpen={view === 'admin'}
+          appPublicUrl={settings.appPublicUrl}
           whatsappUrl={settings.whatsappOfficialUrl}
           instagramUrl={settings.instagramUrl}
           facebookUrl={settings.facebookUrl}
@@ -370,6 +372,8 @@ export default function App() {
         }}
         onStartBooking={handleStartBooking}
       />
+      {/* Offline Status Indicator */}
+      <OfflineIndicator />
     </div>
   );
 }

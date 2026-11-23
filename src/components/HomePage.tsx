@@ -14,7 +14,6 @@ import {
   ShieldCheck,
   ChevronRight,
   Camera,
-  Share2,
   Lock,
   X,
   Check
@@ -22,6 +21,8 @@ import {
 import { Bike, CustomerData, RentalPlan, Reservation, SystemSettings } from '../types';
 import { OFFICIAL_WHATSAPP_LINK } from '../lib/whatsapp';
 import { getBikeCurrentStatus } from '../lib/bikeAvailability';
+import { ShareAppButton } from './ShareAppButton';
+import { PWAInstallButton } from './PWAInstallButton';
 
 interface HomePageProps {
   settings: SystemSettings;
@@ -61,22 +62,6 @@ export const HomePage: React.FC<HomePageProps> = ({
   const displayedBikes = bikeFilter === 'available' ? availableBikes : bikes;
 
   const [isHowItWorksOpen, setIsHowItWorksOpen] = React.useState(false);
-  const [shareCopied, setShareCopied] = React.useState(false);
-
-  const handleShareApp = () => {
-    const liveUrl = settings.appPublicUrl || (typeof window !== 'undefined' ? window.location.origin : 'https://ais-pre-rbt67jjdrmuum5j5smv6zn-295059394611.us-east1.run.app');
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      navigator.share({
-        title: 'PEDALAÊ - Aluguel de Bikes em Parintins/AM',
-        text: 'Alugue sua bike online no PEDALAÊ e curta a orla de Parintins!',
-        url: liveUrl,
-      }).catch(() => {});
-    } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(liveUrl);
-      setShareCopied(true);
-      setTimeout(() => setShareCopied(false), 3000);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -183,6 +168,12 @@ export const HomePage: React.FC<HomePageProps> = ({
             </button>
           </div>
 
+          {/* App Actions: Share App & Install on Mobile */}
+          <div className="flex flex-row items-center justify-center gap-2.5 mt-3 w-full max-w-md">
+            <ShareAppButton variant="button" appUrl={settings.appPublicUrl} />
+            <PWAInstallButton variant="button" appUrl={settings.appPublicUrl} />
+          </div>
+
           {/* Returning Customer Quick Access Banner */}
           <div className="mt-6 sm:mt-8 w-full max-w-lg">
             {identifiedCustomer ? (
@@ -247,91 +238,6 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* Planos de Aluguel Section - Spacious, Full-size Cards on All Devices */}
-      <section id="section-planos" className="py-12 sm:py-20 px-4 sm:px-6 bg-black border-b border-zinc-900">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center max-w-xl mx-auto mb-8 sm:mb-12">
-            <span className="text-xs font-bold uppercase tracking-widest text-amber-400">
-              Tarifas & Valores
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-white mt-1">
-              Planos de Aluguel
-            </h2>
-            <p className="text-sm text-zinc-400 mt-2">
-              Selecione o plano desejado abaixo. O valor e o tempo de pedal serão aplicados imediatamente!
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-            {plans.map((plan) => {
-              return (
-                <div
-                  key={plan.id}
-                  onClick={() => {
-                    onSelectPlanForBooking?.(plan);
-                  }}
-                  className={`relative rounded-3xl p-6 text-center flex flex-col justify-between transition-all duration-300 cursor-pointer ${
-                    plan.popular
-                      ? 'bg-gradient-to-b from-amber-500/15 via-zinc-900 to-zinc-950 border-2 border-amber-500 shadow-xl shadow-amber-500/15 hover:border-amber-400'
-                      : 'bg-zinc-900/80 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900'
-                  }`}
-                >
-                  {plan.popular ? (
-                    <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-amber-500 text-black text-[11px] font-black uppercase px-3.5 py-0.5 rounded-full shadow-lg whitespace-nowrap">
-                      Mais Escolhido
-                    </span>
-                  ) : null}
-
-                  <div className="space-y-3">
-                    <div className="text-xs font-extrabold text-amber-400 tracking-wider uppercase">
-                      {plan.label}
-                    </div>
-                    <div className="text-3xl sm:text-4xl font-black text-white">
-                      {plan.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </div>
-                    <div className="text-xs text-zinc-400">
-                      {plan.durationHours} hora{plan.durationHours > 1 ? 's' : ''} de pedal
-                    </div>
-
-                    <div className="pt-3 border-t border-zinc-800/80 text-xs text-zinc-300 space-y-1.5 text-left">
-                      <div className="flex items-center gap-2">
-                        <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                        <span>Bicicleta inspecionada</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                        <span>Freios regulados</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                        <span>Suporte em Parintins</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    id={`btn-plan-${plan.id}`}
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSelectPlanForBooking?.(plan);
-                    }}
-                    className={`mt-6 w-full py-3.5 px-4 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 ${
-                      plan.popular
-                        ? 'bg-amber-500 text-black hover:bg-amber-400 shadow-md shadow-amber-500/20'
-                        : 'bg-zinc-800 hover:bg-amber-500 hover:text-black text-zinc-200'
-                    }`}
-                  >
-                    <span>{`ESCOLHER PLANO DE R$ ${plan.price.toFixed(0)}`}</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
       {/* Catálogo de Bikes Section - Spacious, Full Cards on Mobile */}
       <section id="section-bikes" className="py-12 sm:py-20 px-4 sm:px-6 bg-zinc-950">
         <div className="max-w-6xl mx-auto">
@@ -341,10 +247,10 @@ export const HomePage: React.FC<HomePageProps> = ({
                 Frota Pedalaê • Parintins
               </span>
               <h2 className="text-2xl sm:text-4xl font-extrabold text-white mt-1">
-                ESCOLHA SUA BIKE
+                CONHEÇA NOSSAS BIKES
               </h2>
               <p className="text-sm text-zinc-400 mt-1">
-                Toque na bicicleta desejada para iniciar sua reserva em 1 minuto.
+                Toque em uma bicicleta para iniciar seu cadastro, escolher o plano de valores e concluir o aluguel.
               </p>
             </div>
             {/* Filter buttons */}
@@ -484,7 +390,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                         </>
                       ) : (
                         <>
-                          <span>🚲 ESCOLHER ESTA BIKE (PASSO 1)</span>
+                          <span>🚲 ALUGAR ESTA BIKE</span>
                           <ChevronRight className="w-4 h-4 text-black stroke-[3]" />
                         </>
                       )}
@@ -692,16 +598,10 @@ export const HomePage: React.FC<HomePageProps> = ({
             </a>
           </div>
 
-          {/* Quick Share Link Button */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={handleShareApp}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-amber-400 border border-zinc-800 hover:border-amber-500/40 text-xs font-bold transition-all cursor-pointer active:scale-95 shadow-sm"
-            >
-              <Share2 className="w-3.5 h-3.5 text-amber-400" />
-              <span>{shareCopied ? '✓ Link Oficial Copiado!' : '📲 Compartilhar App PEDALAÊ com Amigos'}</span>
-            </button>
+          {/* Quick Share Link & Install App Buttons */}
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <ShareAppButton variant="footer" appUrl={settings.appPublicUrl} />
+            <PWAInstallButton variant="footer" appUrl={settings.appPublicUrl} />
           </div>
 
           <p className="max-w-md text-zinc-400 text-xs">

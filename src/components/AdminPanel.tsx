@@ -275,13 +275,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   };
 
-  const handleShareAppViaWhatsApp = () => {
-    const msg = encodeURIComponent(
-      `🚲 *PEDALAÊ — ALUGUEL DE BIKES EM PARINTINS/AM*\n"ALUGUE. PEDALE. VIVA O MOMENTO."\n\nOlá! Para escolher sua bike, conferir os planos e reservar online pelo celular, acesse nosso link oficial:\n👉 ${appLiveUrl}\n\n📍 Retirada na Orla de Parintins (próximo à Praça da Catedral).`
-    );
-    window.open(`https://wa.me/?text=${msg}`, '_blank');
-  };
-
   useEffect(() => {
     setEditCompanyName(settings.companyName);
     setEditSlogan(settings.slogan);
@@ -1493,82 +1486,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <Download className="w-3.5 h-3.5" />
               <span>Baixar Backup (.JSON)</span>
             </button>
-          </div>
-        </div>
-
-        {/* Link Oficial do App / Instagram Bio & WhatsApp Card */}
-        <div className="mb-6 p-5 rounded-3xl bg-gradient-to-r from-amber-500/15 via-zinc-900 to-amber-500/10 border-2 border-amber-500/50 shadow-xl">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="space-y-1.5 min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/40">
-                  Link Oficial do Sistema • Online na Nuvem
-                </span>
-              </div>
-              <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
-                <span>🔗 Link Oficial para Bio do Instagram, Stories e WhatsApp</span>
-              </h3>
-              <p className="text-xs text-zinc-300 max-w-2xl leading-relaxed">
-                Este é o link oficial e permanente para colocar na bio do seu Instagram (<strong className="text-pink-400">@pedalae.parintins</strong>) e nos stories para seus clientes alugarem as bikes pelo celular.
-              </p>
-              
-              {/* URL Display */}
-              <div className="mt-2 flex items-center gap-2 bg-black/80 border border-amber-500/40 rounded-xl px-3 py-2 max-w-2xl">
-                <span className="text-xs font-mono text-amber-300 truncate select-all flex-1">
-                  {appLiveUrl}
-                </span>
-              </div>
-            </div>
-
-            {/* Quick Action Buttons */}
-            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 lg:self-center flex-shrink-0">
-              <button
-                type="button"
-                onClick={handleCopyLiveLink}
-                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer whitespace-nowrap"
-              >
-                {linkCopied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                <span>{linkCopied ? 'Link Copiado!' : 'Copiar Link para Instagram'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleShareAppViaWhatsApp}
-                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer whitespace-nowrap"
-                title="Enviar link formatado no WhatsApp para clientes"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-                <span>Enviar no WhatsApp</span>
-              </button>
-
-              <a
-                href={appLiveUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-xs border border-zinc-700 transition-all cursor-pointer whitespace-nowrap"
-                title="Abrir o app oficial em uma nova aba"
-              >
-                <Eye className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Testar Link</span>
-              </a>
-            </div>
-          </div>
-
-          {/* Alert explaining the Netlify error */}
-          <div className="mt-4 pt-3.5 border-t border-amber-500/20 text-xs text-amber-200/90 flex items-start gap-2.5 bg-black/40 p-3 rounded-xl">
-            <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="font-bold text-amber-300">
-                Atenção: Por que sua cliente viu o erro "Site not found" da Netlify?
-              </p>
-              <p className="text-[11px] leading-relaxed text-zinc-300">
-                O Instagram <span className="text-pink-400 font-semibold">@pedalae.parintins</span> estava apontando para o link antigo ou com erro de digitação <span className="font-mono bg-zinc-800 text-rose-300 px-1 py-0.5 rounded">pedalaeparintinsbik.netlify.app</span>. Como o site oficial do Pedalaê foi migrado para a nuvem Google, a Netlify não encontrou a página.
-              </p>
-              <p className="text-[11px] leading-relaxed text-amber-300 font-medium">
-                👉 <strong>Como resolver agora mesmo em 30 segundos:</strong> Clique em <em>"Copiar Link para Instagram"</em> acima, abra o Instagram no celular, toque em <em>Editar Perfil &gt; Links &gt; Link Principal</em>, cole este link oficial e salve!
-              </p>
-            </div>
           </div>
         </div>
 

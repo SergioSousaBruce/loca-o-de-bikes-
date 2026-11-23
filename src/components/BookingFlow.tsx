@@ -1259,13 +1259,13 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
           <div className="space-y-6">
             <div className="text-center">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-400 text-xs font-bold uppercase tracking-wider mb-2">
-                Passo 2 de 6 • Duração do Aluguel
+                Passo 2 de 6 • Tarifas & Valores
               </span>
               <h2 className="text-2xl sm:text-3xl font-black text-white">
-                Escolha o Valor das Horas
+                Planos de Aluguel
               </h2>
               <p className="text-xs sm:text-sm text-zinc-400 mt-1 max-w-md mx-auto">
-                Selecione por quantas horas você deseja pedalar. O valor do passeio é calculado na hora!
+                Selecione o plano e o valor desejado abaixo. O tempo de pedal será aplicado na sua reserva!
               </p>
             </div>
 
@@ -1276,7 +1276,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                   ✓
                 </div>
                 <div className="text-left">
-                  <span className="text-[10px] text-zinc-400 uppercase font-bold block">Cliente:</span>
+                  <span className="text-[10px] text-zinc-400 uppercase font-bold block">Cadastro confirmado:</span>
                   <span className="text-xs font-black text-white">{fullName}</span>
                 </div>
               </div>
@@ -1325,8 +1325,8 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
               </button>
             </div>
 
-            {/* Large Plans Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            {/* Plans Table Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               {settings.plans.map((plan) => {
                 const isSelected = selectedPlan?.id === plan.id;
                 const calculatedPrice = plan.price * (selectedBikes.length || 1);
@@ -1339,53 +1339,78 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                       setSelectedPlan(plan);
                       setFormError(null);
                     }}
-                    className={`relative rounded-3xl p-5 sm:p-6 border-2 transition-all flex flex-col justify-between cursor-pointer select-none ${
+                    className={`relative rounded-3xl p-5 sm:p-6 text-center flex flex-col justify-between transition-all cursor-pointer select-none ${
                       isSelected
-                        ? 'bg-gradient-to-br from-amber-500/20 via-zinc-900 to-zinc-950 border-amber-400 ring-2 ring-amber-400/50 shadow-xl shadow-amber-500/20 scale-[1.02]'
-                        : 'bg-zinc-900/90 border-zinc-800 hover:border-amber-500/50 hover:bg-zinc-800/90'
+                        ? 'bg-gradient-to-b from-emerald-500/20 via-zinc-900 to-zinc-950 border-2 border-emerald-400 ring-2 ring-emerald-400/50 shadow-xl shadow-emerald-500/20 scale-[1.02]'
+                        : plan.popular
+                        ? 'bg-gradient-to-b from-amber-500/15 via-zinc-900 to-zinc-950 border-2 border-amber-500 shadow-xl shadow-amber-500/15 hover:border-amber-400'
+                        : 'bg-zinc-900/80 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900'
                     }`}
                   >
-                    {plan.popular && (
-                      <span className="absolute -top-3 left-6 px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500 text-black shadow-md">
+                    {isSelected ? (
+                      <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-emerald-500 text-black text-[11px] font-black uppercase px-3.5 py-0.5 rounded-full shadow-lg whitespace-nowrap">
+                        ✓ Plano Selecionado
+                      </span>
+                    ) : plan.popular ? (
+                      <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-amber-500 text-black text-[11px] font-black uppercase px-3.5 py-0.5 rounded-full shadow-lg whitespace-nowrap">
                         Mais Escolhido
                       </span>
-                    )}
+                    ) : null}
 
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <span className="text-xs font-black uppercase text-amber-400 tracking-wider">
-                          Duração
-                        </span>
-                        <h3 className="text-xl sm:text-2xl font-black text-white mt-0.5">
-                          {plan.label}
-                        </h3>
-                        <p className="text-xs text-zinc-300 mt-1">
-                          {plan.description || `${plan.durationHours} hora${plan.durationHours > 1 ? 's' : ''} de pedal livre pela orla`}
-                        </p>
+                    <div className="space-y-2.5">
+                      <div className="text-xs font-extrabold text-amber-400 tracking-wider uppercase">
+                        {plan.label}
                       </div>
-
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-colors ${
-                        isSelected
-                          ? 'bg-amber-400 border-amber-400 text-black'
-                          : 'border-zinc-700 text-transparent'
-                      }`}>
-                        <Check className="w-4 h-4 stroke-[3]" />
+                      <div className="text-3xl sm:text-4xl font-black text-white">
+                        {calculatedPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </div>
-                    </div>
-
-                    <div className="mt-5 pt-4 border-t border-zinc-800/80 flex items-baseline justify-between">
-                      <span className="text-xs text-zinc-400 font-medium">Valor:</span>
-                      <div className="text-right">
-                        <span className="text-2xl sm:text-3xl font-black text-amber-400 font-mono">
-                          {calculatedPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                        </span>
+                      <div className="text-xs text-zinc-400">
+                        {plan.durationHours} hora{plan.durationHours > 1 ? 's' : ''} de pedal
                         {selectedBikes.length > 1 && (
-                          <span className="text-[10px] text-zinc-400 block font-mono">
+                          <span className="block text-[10px] text-amber-300 font-mono mt-0.5">
                             ({selectedBikes.length} bikes x {plan.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })})
                           </span>
                         )}
                       </div>
+
+                      <div className="pt-3 border-t border-zinc-800/80 text-xs text-zinc-300 space-y-1.5 text-left">
+                        <div className="flex items-center gap-2">
+                          <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                          <span>Bicicleta inspecionada</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                          <span>Freios regulados</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                          <span>Suporte em Parintins</span>
+                        </div>
+                      </div>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPlan(plan);
+                        setFormError(null);
+                      }}
+                      className={`mt-5 w-full py-3 px-4 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 ${
+                        isSelected
+                          ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/25'
+                          : plan.popular
+                          ? 'bg-amber-500 text-black hover:bg-amber-400 shadow-md shadow-amber-500/20'
+                          : 'bg-zinc-800 hover:bg-amber-500 hover:text-black text-zinc-200'
+                      }`}
+                    >
+                      <span>
+                        {isSelected
+                          ? '✓ PLANO SELECIONADO'
+                          : `ESCOLHER PLANO DE R$ ${calculatedPrice.toFixed(0)}`}
+                      </span>
+                      {!isSelected && <ArrowRight className="w-3.5 h-3.5" />}
+                    </button>
                   </div>
                 );
               })}
@@ -1407,7 +1432,7 @@ export const BookingFlow: React.FC<BookingFlowProps> = ({
                 <span>
                   {selectedPlan
                     ? `Avançar com ${selectedPlan.label} — ${((selectedPlan.price * (selectedBikes.length || 1))).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`
-                    : 'Selecione uma opção de horas acima para avançar'}
+                    : 'Selecione um plano acima para avançar'}
                 </span>
                 <ArrowRight className="w-4 h-4 stroke-[3]" />
               </button>
